@@ -2,130 +2,167 @@ package bikerportal;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.util.HashMap;
+import java.util.Map;
 
 public class BikerPortal extends JFrame {
-    
-    protected JButton browseButton, searchButton; // Changed from private to protected
-    
+
+    private JTextField bike1Field;
+    private JTextField bike2Field;
+    private JTextArea comparisonArea;
+    private JLabel bikeImageLabel1;
+    private JLabel bikeImageLabel2;
+    private JPanel detailsPanel;
+
+    private Map<String, Map<String, String>> bikeData = new HashMap<>();
+
     public BikerPortal() {
-        
-        setTitle("Biker's Portal");
-        setSize(800, 600);
+        setTitle("Bike Comparison Portal");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Top Panel
-        JPanel topPanel = new JPanel(new GridBagLayout());
-        topPanel.setBackground(new Color(0, 130, 130));
-        topPanel.setPreferredSize(new Dimension(800, 60));
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.VERTICAL;
-        gbc.weightx = 1;
-
-        // Left Panel (Logo & Title)
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-        leftPanel.setOpaque(false);
-
-        ImageIcon originalIcon = new ImageIcon("D:/PROJECTS/Biker's Portal/logo.png");
-        Image originalImage = originalIcon.getImage();
-        Image scaledImage = originalImage.getScaledInstance(40, 40, Image.SCALE_SMOOTH);
-        ImageIcon resizedIcon = new ImageIcon(scaledImage);
-
-        JLabel logoLabel = new JLabel(resizedIcon);
-        JLabel titleLabel = new JLabel("Biker's Portal");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        titleLabel.setForeground(Color.WHITE);
-
-        leftPanel.add(logoLabel);
-        leftPanel.add(titleLabel);
-
-        // Center Panel (Search Bar)
-        JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        centerPanel.setOpaque(false);
-        JTextField searchField = new JTextField(20);
-        searchButton = new JButton("Search"); // ✅ Make searchButton accessible
-
-        Color buttonColor = new Color(0, 0, 0);
-        Color textColor = Color.WHITE;
-
-        searchButton.setBackground(buttonColor);
-        searchButton.setForeground(textColor);
-        searchButton.setFocusPainted(false);
-        searchButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-
-        centerPanel.add(searchField);
-        centerPanel.add(searchButton);
-
-        // Right Panel (Compare & Browse Buttons)
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        rightPanel.setOpaque(false);
-
+        // 1. Input Panel
+        JPanel inputPanel = new JPanel(new FlowLayout());
+        bike1Field = new JTextField(20);
+        bike2Field = new JTextField(20);
         JButton compareButton = new JButton("Compare");
-        browseButton = new JButton("Browse"); // ✅ Initialize browseButton
+        JButton singleBikeButton = new JButton("Check Single Bike");
 
-        JButton[] topPanelButtons = {compareButton, browseButton, searchButton};
-        for (JButton button : topPanelButtons) {
-            button.setBackground(buttonColor);
-            button.setForeground(textColor);
-            button.setFocusPainted(false);
-            button.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-        }
+        inputPanel.add(new JLabel("Bike 1:"));
+        inputPanel.add(bike1Field);
+        inputPanel.add(new JLabel("Bike 2:"));
+        inputPanel.add(bike2Field);
+        inputPanel.add(compareButton);
+        inputPanel.add(singleBikeButton);
 
-        rightPanel.add(compareButton);
-        rightPanel.add(browseButton);
+        add(inputPanel, BorderLayout.NORTH);
 
-        // Add Components to Top Panel
-        gbc.gridx = 0; gbc.anchor = GridBagConstraints.WEST;
-        topPanel.add(leftPanel, gbc);
+        // 2. Center Panel for Images and Details
+        JPanel centerPanel = new JPanel(new BorderLayout());
 
-        gbc.gridx = 1; gbc.anchor = GridBagConstraints.CENTER;
-        topPanel.add(centerPanel, gbc);
+        // 3. Bike Images Area
+        JPanel imagePanel = new JPanel(new GridLayout(1, 2));
+        bikeImageLabel1 = new JLabel("", SwingConstants.CENTER);
+        bikeImageLabel2 = new JLabel("", SwingConstants.CENTER);
+        imagePanel.add(bikeImageLabel1);
+        imagePanel.add(bikeImageLabel2);
+        centerPanel.add(imagePanel, BorderLayout.NORTH);
 
-        gbc.gridx = 2; gbc.anchor = GridBagConstraints.EAST;
-        topPanel.add(rightPanel, gbc);
+        // 4. Details Area
+        detailsPanel = new JPanel(new BorderLayout());
+        comparisonArea = new JTextArea(20, 50);
+        comparisonArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(comparisonArea);
+        detailsPanel.add(scrollPane, BorderLayout.CENTER);
+        centerPanel.add(detailsPanel, BorderLayout.CENTER);
 
-        // Grid Panel (2x4 Layout)
-        JPanel gridPanel = new JPanel(new GridLayout(2, 4, 10, 10));
-        gridPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        gridPanel.setBackground(Color.BLACK);
+        add(centerPanel, BorderLayout.CENTER);
 
-        String[] bikeTypes = {
-            "Road Bike", "Mountain Bike", "Hybrid Bike", "Cruiser Bike",
-            "BMX Bike", "Folding Bike", "Electric Bike", "Touring Bike"
-        };
-
-        for (String bike : bikeTypes) {
-            JButton bikeButton = new JButton(bike);
-            gridPanel.add(bikeButton);
-        }
-
-        add(topPanel, BorderLayout.NORTH);
-        add(gridPanel, BorderLayout.CENTER);
-
-        // ✅ Add Action Listeners for Buttons
-        browseButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new Browsing(); // ✅ Open Browsing Window
-                dispose(); // ✅ Close Parent Window
-            }
+        // 5. Compare Button Action
+        compareButton.addActionListener(e -> {
+            String bike1Name = bike1Field.getText().trim().toLowerCase();
+            String bike2Name = bike2Field.getText().trim().toLowerCase();
+            compareBikes(bike1Name, bike2Name);
         });
 
-        searchButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new searching(); // ✅ Open Searching Window
-                dispose(); // ✅ Close Parent Window
-            }
+        // 6. Single Bike Button Action
+        singleBikeButton.addActionListener(e -> {
+            String bikeName = bike1Field.getText().trim().toLowerCase();
+            checkSingleBike(bikeName);
         });
 
+        // 7. Sample Bike Data (REPLACE THIS WITH YOUR DATA LOADING)
+        bikeData.put("honda cb shine", createBikeData("Honda CB Shine", "124cc", "10.7 hp", "Drum", "107 kg", "₹78,000", "₹85,000", "65 kmpl", "C:\\Users\\Kashish\\Desktop\\2018-honda-cb-shine-sp.jpg"));
+        bikeData.put("hero splendor plus", createBikeData("Hero Splendor Plus", "97.2cc", "7.9 hp", "Drum", "110 kg", "₹70,000", "₹75,000", "70 kmpl", "C:\\Users\\Kashish\\Desktop\\hero splender.jpg"));
+        bikeData.put("bajaj pulsar 150", createBikeData("Bajaj Pulsar 150", "149.5cc", "14 hp", "Disc", "140 kg", "₹1.1 lakh", "₹1.2 lakh", "45 kmpl", "C:\\Users\\Kashish\\Desktop\\pulsar.jpg"));
+        bikeData.put("yamaha r15 v4", createBikeData("Yamaha R15 V4", "155cc", "18.4 hp", "Disc", "142 kg", "₹1.8 lakh", "₹1.9 lakh", "40 kmpl", "C:\\Users\\Kashish\\Desktop\\Yamaha-R15-V4-Black.jpg"));
+        bikeData.put("harley davidson street 750", createBikeData("Harley Davidson Street 750", "749cc", "53 hp", "Disc", "233 kg", "₹5.34 lakh", "₹5.5 lakh", "20 kmpl", "C:\\Users\\Kashish\\Desktop\\Harley-Davidson-Street-750-.jpg"));
+        bikeData.put("royal enfield bullet 350", createBikeData("Royal Enfield Bullet 350", "346cc", "19.1 hp", "Disc", "191 kg", "₹1.5 lakh", "₹1.6 lakh", "37 kmpl", "C:\\Users\\Kashish\\Desktop\\royal enfield.jpg"));
+        bikeData.put("mercedes benz amg motorcycle", createBikeData("Mercedes-Benz AMG Motorcycle", "999cc", "215 hp", "Disc", "205 kg", "₹25 lakh", "₹27 lakh", "15 kmpl", "C:\\Users\\Kashish\\Desktop\\mercedes bike.jpg"));
+        bikeData.put("harley davidson x440", createBikeData("Harley Davidson X440", "440cc", "27 hp", "Disc", "190 kg", "₹2.5 lakh", "₹2.7 lakh", "35 kmpl", "C:\\Users\\Kashish\\Desktop\\Harley-Davidson-X440.jpg"));
+
+        pack();
         setVisible(true);
     }
 
+    private Map<String, String> createBikeData(String name, String engine, String power, String brakes, String weight, String price, String roadPrice, String mileage, String imagePath) {
+        Map<String, String> data = new HashMap<>();
+        data.put("Name", name);
+        data.put("Engine", engine);
+        data.put("Power", power);
+        data.put("Brakes", brakes);
+        data.put("Weight", weight);
+        data.put("Price", price);
+        data.put("Road Price", roadPrice);
+        data.put("Mileage", mileage);
+        data.put("ImagePath", imagePath);
+        return data;
+    }
+
+    private void compareBikes(String bike1Name, String bike2Name) {
+        Map<String, String> bike1Data = bikeData.get(bike1Name);
+        Map<String, String> bike2Data = bikeData.get(bike2Name);
+
+        if (bike1Data == null || bike2Data == null) {
+            comparisonArea.setText("One or both bikes not found.");
+            return;
+        }
+
+        StringBuilder comparisonText = new StringBuilder();
+
+        // Header row
+        comparisonText.append(String.format("%-15s %-25s %-25s\n", "Feature", bike1Data.get("Name"), bike2Data.get("Name")));
+        comparisonText.append("-------------------------------------------------------------\n");
+
+        // Data rows
+        for (String feature : bike1Data.keySet()) {
+            if (!feature.equals("ImagePath")) {
+                comparisonText.append(String.format("%-15s %-25s %-25s\n", feature, bike1Data.get(feature), bike2Data.get(feature)));
+            }
+        }
+
+        comparisonArea.setText(comparisonText.toString());
+
+        // Display images
+        displayImage(bikeImageLabel1, bike1Data.get("ImagePath"));
+        displayImage(bikeImageLabel2, bike2Data.get("ImagePath"));
+    }
+
+    private void checkSingleBike(String bikeName) {
+        Map<String, String> bikeData = this.bikeData.get(bikeName);
+
+        if (bikeData == null) {
+            comparisonArea.setText("Bike not found.");
+            return;
+        }
+
+        StringBuilder bikeDetails = new StringBuilder();
+
+        // Header
+        bikeDetails.append(String.format("%-15s %-25s\n", "Feature", bikeData.get("Name")));
+        bikeDetails.append("--------------------------------------------\n");
+
+        // Data rows
+        for (String feature : bikeData.keySet()) {
+            if (!feature.equals("ImagePath")) {
+                bikeDetails.append(String.format("%-15s %-25s\n", feature, bikeData.get(feature)));
+            }
+        }
+
+        comparisonArea.setText(bikeDetails.toString());
+
+        // Display image
+        displayImage(bikeImageLabel1, bikeData.get("ImagePath"));
+        bikeImageLabel2.setIcon(null); // Clear second image
+    }
+
+    private void displayImage(JLabel label, String imagePath) {
+        ImageIcon imageIcon = new ImageIcon(imagePath);
+        Image image = imageIcon.getImage().getScaledInstance(200, 150, Image.SCALE_SMOOTH);
+        label.setIcon(new ImageIcon(image));
+    }
+
     public static void main(String[] args) {
-        new BikerPortal();
+        SwingUtilities.invokeLater(() -> new BikerPortal());
     }
 }
