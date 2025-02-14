@@ -10,15 +10,15 @@ public class searching extends JFrame {
     private JTable resultTable;
     private DefaultTableModel tableModel;
 
-    // ✅ Sample Bike Data (Model, Fuel Type, Engine Capacity, Price)
+    //   Sample Bike Data (Model, Fuel Type, Engine Capacity, Price)
     private final String[][] bikeData = {
-        {"Yamaha R1", "Petrol", "998cc", "$15,000"},
-        {"Honda CBR600RR", "Petrol", "599cc", "$9,000"},
-        {"Kawasaki KX250", "Petrol", "249cc", "$7,500"},
-        {"Suzuki RMZ450", "Petrol", "450cc", "$6,000"},
-        {"Giant Escape 3", "None", "Hybrid", "$4,000"},
-        {"Harley Davidson Street 750", "Petrol", "749cc", "$12,000"},
-        {"Revolt RV400", "Electric", "N/A", "$3,500"}
+        {"Yamaha R1", "Petrol", "998cc", "15,000"},
+        {"Honda CBR600RR", "Petrol", "599cc", "9,000"},
+        {"Kawasaki KX250", "Petrol", "249cc", "7,500"},
+        {"Suzuki RMZ450", "Petrol", "450cc", "6,000"},
+        {"Giant Escape 3", "None", "Hybrid", "4,000"},
+        {"Harley Davidson Street 750", "Petrol", "749cc", "12,000"},
+        {"Revolt RV400", "Electric", "N/A", "3,500"}
     };
 
     public searching() {
@@ -27,32 +27,32 @@ public class searching extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // ✅ Search Field
+        // Search Field
         searchField = new JTextField(20);
         JButton searchButton = new JButton("Search");
-        styleBlackComponent(searchButton); // ✅ Apply black styling to search button
+        styleBlackComponent(searchButton); 
 
-        // ✅ Filters
+        //  Filters
         String[] fuelTypes = {"All", "Petrol", "Electric", "Hybrid"};
         String[] engineCapacities = {"All", "Below 300cc", "300cc - 600cc", "Above 600cc"};
-        String[] priceRanges = {"All", "Under $5000", "$5000 - $10000", "Above $10000"};
+        String[] priceRanges = {"All", "Under  ₹5000", " ₹5000 -  ₹10000", "Above  ₹10000"};
 
         fuelTypeDropdown = new JComboBox<>(fuelTypes);
         engineCapacityDropdown = new JComboBox<>(engineCapacities);
         priceDropdown = new JComboBox<>(priceRanges);
 
-        // ✅ Apply Black Styling to Dropdowns
+        // Styling Dropdowns
         styleBlackComponent(fuelTypeDropdown);
         styleBlackComponent(engineCapacityDropdown);
         styleBlackComponent(priceDropdown);
 
-        // ✅ Table Setup
+        // Table 
         String[] columns = {"Model Name", "Fuel Type", "Engine Capacity", "Price"};
         tableModel = new DefaultTableModel(columns, 0);
         resultTable = new JTable(tableModel);
         resultTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        // ✅ Search & Filter Panel (Top)
+        // Search & Filter Panel (Top)
         JPanel searchPanel = new JPanel();
         searchPanel.setLayout(new FlowLayout());
         searchPanel.setBackground(new Color(0, 130, 130));
@@ -61,7 +61,7 @@ public class searching extends JFrame {
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
 
-        // ✅ Filter Panel (Middle)
+        //  Filter Panel (Middle)
         JPanel filterPanel = new JPanel();
         filterPanel.setLayout(new FlowLayout());
         filterPanel.add(new JLabel("Fuel Type:"));
@@ -71,13 +71,13 @@ public class searching extends JFrame {
         filterPanel.add(new JLabel("Price:"));
         filterPanel.add(priceDropdown);
 
-        // ✅ Table Panel (Bottom)
+        //  Table Panel (Bottom)
         JScrollPane tableScrollPane = new JScrollPane(resultTable);
         tableScrollPane.setBorder(BorderFactory.createTitledBorder("Search Results"));
 
-        // ✅ Back Button
+        //  Back Button
         JButton backButton = new JButton("Back to Main Menu");
-        styleBlackComponent(backButton); // ✅ Apply black styling to back button
+        styleBlackComponent(backButton); //   Apply black styling to back button
         backButton.addActionListener(e -> {
             dispose(); // Close Searching Window
             new BikerPortal(); // Return to Main Menu
@@ -87,19 +87,19 @@ public class searching extends JFrame {
         bottomPanel.setBackground(new Color(0, 130, 130));
         bottomPanel.add(backButton);
 
-        // ✅ Event Listeners for Filtering
+        //   Event Listeners for Filtering
         searchButton.addActionListener(e -> filterBikes());
         fuelTypeDropdown.addActionListener(e -> filterBikes());
         engineCapacityDropdown.addActionListener(e -> filterBikes());
         priceDropdown.addActionListener(e -> filterBikes());
 
-        // ✅ Add Components to Layout
+        //   Add Components to Layout
         add(searchPanel, BorderLayout.NORTH);
         add(filterPanel, BorderLayout.CENTER);
         add(tableScrollPane, BorderLayout.SOUTH);
         add(bottomPanel, BorderLayout.PAGE_END);
 
-        filterBikes(); // ✅ Load Initial Data
+        filterBikes(); //   Load Initial Data
         setVisible(true);
     }
 
@@ -109,7 +109,7 @@ public class searching extends JFrame {
         String selectedEngineCapacity = (String) engineCapacityDropdown.getSelectedItem();
         String selectedPrice = (String) priceDropdown.getSelectedItem();
 
-        tableModel.setRowCount(0); // ✅ Clear Table
+        tableModel.setRowCount(0); //   Clear Table
 
         for (String[] bike : bikeData) {
             String model = bike[0].toLowerCase();
@@ -117,13 +117,13 @@ public class searching extends JFrame {
             String engineCapacity = bike[2];
             String price = bike[3];
 
-            // ✅ Apply Filters
+            //   Apply Filters
             if (!searchQuery.isEmpty() && !model.contains(searchQuery)) continue;
             if (!selectedFuelType.equals("All") && !fuelType.equals(selectedFuelType)) continue;
             if (!selectedEngineCapacity.equals("All") && !matchesEngineCapacity(engineCapacity, selectedEngineCapacity)) continue;
             if (!selectedPrice.equals("All") && !matchesPrice(price, selectedPrice)) continue;
 
-            // ✅ Add Matching Bike to Table
+            //   Add Matching Bike to Table
             tableModel.addRow(new String[]{bike[0], fuelType, engineCapacity, price});
         }
     }
@@ -142,9 +142,9 @@ public class searching extends JFrame {
     private boolean matchesPrice(String price, String filter) {
         int priceValue = Integer.parseInt(price.replaceAll("[^0-9]", ""));
         switch (filter) {
-            case "Under $5000": return priceValue < 5000;
-            case "$5000 - $10000": return priceValue >= 5000 && priceValue <= 10000;
-            case "Above $10000": return priceValue > 10000;
+            case "Under  ₹5000": return priceValue < 5000;
+            case " ₹5000 -  ₹10000": return priceValue >= 5000 && priceValue <= 10000;
+            case "Above  ₹10000": return priceValue > 10000;
             default: return true;
         }
     }
