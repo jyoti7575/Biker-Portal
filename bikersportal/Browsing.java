@@ -5,13 +5,16 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.sql.*;
 import java.awt.event.*;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import java.util.ArrayList;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
 
 public class Browsing extends JFrame {
     private JComboBox<String> brandDropdown, typeDropdown, priceDropdown;
     private JTable resultTable;
     private DefaultTableModel tableModel;
-    private JLabel bikeImageLabel, specLabel;
 
     public Browsing() {
         setTitle("Bike Browsing");
@@ -19,10 +22,10 @@ public class Browsing extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // ✅ Fetch dynamic filters
         String[] brands = getUniqueValues("Brand");
-        String[] types = getUniqueValues("Fuel_type");
-        String[] priceRanges = {"All", "Under $5000", "$5000 - $10000", "Above $10000"};
+        String[] types = getUniqueValues("type");
+        System.out.println(types);
+        String[] priceRanges = {"All", "Under 5000", "5000 - 10000", "Above 10000"};
 
         brandDropdown = createStyledDropdown(brands);
         typeDropdown = createStyledDropdown(types);
@@ -32,34 +35,26 @@ public class Browsing extends JFrame {
         typeDropdown.addActionListener(e -> loadBikeData());
         priceDropdown.addActionListener(e -> loadBikeData());
 
-        // ✅ Table for Bike Listings
         String[] columns = {"Brand", "Model", "Type", "Price"};
         tableModel = new DefaultTableModel(columns, 0);
         resultTable = new JTable(tableModel);
         resultTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        resultTable.setBackground(Color.WHITE);
-        resultTable.setOpaque(true);
 
-        loadBikeData(); // Load data from database
+        resultTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) { 
+                int selectedRow = resultTable.getSelectedRow();
+                if (selectedRow != -1) {
+                    String selectedBike = tableModel.getValueAt(selectedRow, 1).toString();
+                    new BikeDisplay(selectedBike);
+                }
+            }
+        });
 
-        // ✅ Scroll Pane
+        loadBikeData(); 
+
         JScrollPane tableScrollPane = new JScrollPane(resultTable);
         tableScrollPane.setBorder(BorderFactory.createTitledBorder("Available Bikes"));
 
-        // ✅ Image & Specifications Panel
-        bikeImageLabel = new JLabel();
-        bikeImageLabel.setPreferredSize(new Dimension(250, 200));
-
-        specLabel = new JLabel("Select a bike to see details");
-        specLabel.setVerticalAlignment(JLabel.TOP);
-
-        JPanel detailsPanel = new JPanel(new BorderLayout());
-        detailsPanel.setBorder(BorderFactory.createTitledBorder("Bike Details"));
-        detailsPanel.add(bikeImageLabel, BorderLayout.WEST);
-        detailsPanel.add(specLabel, BorderLayout.CENTER);
-        detailsPanel.setBackground(new Color(0,130,130));
-
-        // ✅ Top Panel (Filters)
         JPanel filterPanel = new JPanel();
         filterPanel.add(new JLabel("Brand:"));
         filterPanel.add(brandDropdown);
@@ -67,9 +62,8 @@ public class Browsing extends JFrame {
         filterPanel.add(typeDropdown);
         filterPanel.add(new JLabel("Price:"));
         filterPanel.add(priceDropdown);
-        filterPanel.setBackground(new Color(0,130,130));
+        filterPanel.setBackground(new Color(0, 130, 130));
 
-        // ✅ Back Button
         JButton backButton = new JButton("Back to Main Menu");
         styleBlackButton(backButton);
         backButton.addActionListener(e -> {
@@ -79,45 +73,83 @@ public class Browsing extends JFrame {
 
         JPanel bottomPanel = new JPanel();
         bottomPanel.add(backButton);
-        bottomPanel.setBackground(new Color(0,130,130));
+        bottomPanel.setBackground(new Color(0, 130, 130));
 
-        // ✅ Apply Background Color to JFrame Content Pane
-        getContentPane().setBackground(Color.WHITE);
-
-        // ✅ Add Components to Layout
         add(filterPanel, BorderLayout.NORTH);
         add(tableScrollPane, BorderLayout.CENTER);
-        add(detailsPanel, BorderLayout.SOUTH);
         add(bottomPanel, BorderLayout.PAGE_END);
 
         setVisible(true);
     }
 
     private void loadBikeData() {
-        tableModel.setRowCount(0); // Clear table before fetching data
-        String selectedBrand = brandDropdown.getSelectedItem().toString();
-        String selectedType = typeDropdown.getSelectedItem().toString();
-        String selectedPrice = priceDropdown.getSelectedItem().toString();
-        
-        String query = "SELECT Brand, Name, Fuel_type, Showroom_price FROM Bike WHERE 1=1";
-        if (!selectedBrand.equals("All")) query += " AND Brand = '" + selectedBrand + "'";
-        if (!selectedType.equals("All")) query += " AND Fuel_type = '" + selectedType + "'";
-        if (selectedPrice.equals("Under $5000")) query += " AND Showroom_price < 5000";
-        else if (selectedPrice.equals("$5000 - $10000")) query += " AND Showroom_price BETWEEN 5000 AND 10000";
-        else if (selectedPrice.equals("Above $10000")) query += " AND Showroom_price > 10000";
+    tableModel.setRowCount(0); // Clear previous data
 
-        try (Connection conn = DBConnection.connect();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-            while (rs.next()) {
-                String brand = rs.getString("Brand");
-                String model = rs.getString("Name");
-                String type = rs.getString("Fuel_type");
-                double price = rs.getDouble("Showroom_price");
-                tableModel.addRow(new Object[]{brand, model, type, "$" + price});
+    String selectedBrand = brandDropdown.getSelectedItem().toString();
+    String selectedType = typeDropdown.getSelectedItem().toString();
+    String selectedPrice = priceDropdown.getSelectedItem().toString();
+
+    try {
+        // Base API URL
+        String apiUrl = "https://motorcycles-by-api-ninjas.p.rapidapi.com/v1/motorcycles";
+        ArrayList<String> params = new ArrayList<>();
+
+        // Ensure at least one parameter is sent
+        if (!selectedBrand.equals("All")) {
+            params.add("make=" + selectedBrand);
+        }
+        if (!selectedType.equals("All")) {
+            params.add("type=" + selectedType);
+        }
+
+        // If no filters are selected, use a default filter (e.g., "make=Honda")
+        if (params.isEmpty()) {
+            params.add("make=Honda"); // Change this default brand if needed
+        }
+
+        apiUrl += "?" + String.join("&", params);
+
+        // API Request
+        HttpResponse<String> response = Unirest.get(apiUrl)
+                .header("x-rapidapi-key", "e052eec525msh4561551343249bdp131ea1jsn50124a4e6188")
+                .header("x-rapidapi-host", "motorcycles-by-api-ninjas.p.rapidapi.com")
+                .asString();
+
+        // Debugging output
+        System.out.println("Final API URL: " + apiUrl);
+        System.out.println("Response Code: " + response.getStatus());
+        System.out.println("Response Body: " + response.getBody());
+
+        if (response.getStatus() == 200) {
+            JSONArray bikesArray = new JSONArray(response.getBody());
+            for (int i = 0; i < bikesArray.length(); i++) {
+                JSONObject bike = bikesArray.getJSONObject(i);
+                String brand = bike.optString("make", "Unknown");
+                String model = bike.optString("model", "Unknown");
+                String type = bike.optString("type", "Unknown");
+                double price = bike.optDouble("price", 0);
+
+                if (matchesPriceFilter(price, selectedPrice)) {
+                    tableModel.addRow(new Object[]{brand, model, type, "₹" + price});
+                }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } else {
+            JOptionPane.showMessageDialog(this, "Failed to fetch bike data. Error Code: " + response.getStatus(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Failed to fetch bike data.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
+
+
+    private boolean matchesPriceFilter(double price, String filter) {
+        switch (filter) {
+            case "Under 5000": return price < 5000;
+            case "5000 - 10000": return price >= 5000 && price <= 10000;
+            case "Above 10000": return price > 10000;
+            default: return true;
         }
     }
 
@@ -125,7 +157,7 @@ public class Browsing extends JFrame {
         ArrayList<String> values = new ArrayList<>();
         values.add("All");
         String query = "SELECT DISTINCT " + column + " FROM Bike";
-        
+
         try (Connection conn = DBConnection.connect();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
